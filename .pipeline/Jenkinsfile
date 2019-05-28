@@ -1,0 +1,18 @@
+#!/usr/bin/env groovy
+
+//ENV Vars
+def TOOLS_NAMESPACE = "[project_name]-tools"
+def DEV_NAMESPACE = "[project_name]-dev"
+def PROD_NAMESPACE = "[project_name]-prod"
+
+
+//Pipeline
+node {
+            stage ('Build Stage'){
+                dir ('simple_pipeline') {
+                    checkout scm
+                    sh "echo HELLO WORLD! "
+                    sh "ls -lha openshift201/templates"
+                }
+            }
+    }
