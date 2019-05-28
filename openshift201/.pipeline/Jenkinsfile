@@ -15,4 +15,9 @@ node {
                     sh "ls -lha openshift201/templates"
                 }
             }
+            stage ('OC Stage'){
+                dir ('simple_pipeline') {
+                     sh "oc get projects"
+                }
+            }
     }
