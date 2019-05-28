@@ -11,7 +11,7 @@ node {
             stage ('Deploy Loki to Dev'){
                 dir ('simple_pipeline') {
                     checkout scm
-                    sh "oc process -f openshift201/templates/template_loki_sample.yaml -p  LOKI_SERVICE_NAME=${LOKI_SERVICE} | oc apply -f - -n ${DEV_NAMESPACE}"
+                    sh "oc process -f openshift201/templates/loki_template.yaml -p  LOKI_SERVICE_NAME=${LOKI_SERVICE} | oc apply -f - -n ${DEV_NAMESPACE}"
                     sh "echo Wait for service to be up"
                     timeout (time: 180, unit: 'SECONDS'){
                         openshift.withCluster() {
