@@ -4,20 +4,16 @@
 def TOOLS_NAMESPACE = "s4g19x-saravankumarpa-openshift201-may2019-tools"
 def DEV_NAMESPACE = "s4g19x-saravankumarpa-openshift201-may2019-dev"
 def PROD_NAMESPACE = "s4g19x-saravankumarpa-openshift201-may2019-prod"
+def LOKI_SERVICE  = "loki"
 
 
 //Pipeline
 node {
-            stage ('Build Stage'){
+            stage ('Deploy Loki to Dev'){
                 dir ('simple_pipeline') {
                     checkout scm
-                    sh "echo HELLO WORLD! "
-                    sh "ls -lha openshift201/templates"
-                }
-            }
-            stage ('OC Stage'){
-                dir ('simple_pipeline') {
-                     sh "oc get projects"
+                    sh "oc process -f openshift201/templates/template_loki_sample.yaml -p  LOKI_SERVICE_NAME=${LOKI_SERVICE} | oc apply -f - -n ${DEV_NAMESPACE}"
+
                 }
             }
     }
