@@ -1,0 +1,167 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+labels:
+  template: loki-template
+message: |-
+  The following service(s) have been created in your project: ${LOKI_SERVICE_NAME}.
+objects:
+- apiVersion: v1
+  kind: Service
+  metadata:
+    labels:
+      app: ${LOKI_SERVICE_NAME}
+      chart: loki-0.8.4
+      heritage: Tiller
+      release: ${LOKI_SERVICE_NAME}
+    name: ${LOKI_SERVICE_NAME}
+  spec:
+    ports:
+    - name: http-metrics
+      port: 3100
+      protocol: TCP
+      targetPort: http-metrics
+    selector:
+      app: ${LOKI_SERVICE_NAME}
+      release: ${LOKI_SERVICE_NAME}
+    sessionAffinity: None
+    type: ClusterIP
+- apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    generation: 1
+    labels:
+      app: ${LOKI_SERVICE_NAME}
+      chart: loki-0.8.4
+      heritage: Tiller
+      release: ${LOKI_SERVICE_NAME}
+    name: ${LOKI_SERVICE_NAME}
+  spec:
+    progressDeadlineSeconds: 600
+    replicas: 1
+    revisionHistoryLimit: 10
+    selector:
+      matchLabels:
+        app: ${LOKI_SERVICE_NAME}
+        release: ${LOKI_SERVICE_NAME}
+    strategy:
+      rollingUpdate:
+        maxSurge: 25%
+        maxUnavailable: 25%
+      type: RollingUpdate
+    template:
+      metadata:
+        labels:
+          app: ${LOKI_SERVICE_NAME}
+          name: ${LOKI_SERVICE_NAME}
+          release: ${LOKI_SERVICE_NAME}
+      spec:
+        affinity: {}
+        containers:
+        - args:
+          - -config.file=/etc/loki/loki.yaml
+          env:
+          - name: JAEGER_AGENT_HOST
+          image: grafana/loki:latest
+          imagePullPolicy: Always
+          livenessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /ready
+              port: http-metrics
+              scheme: HTTP
+            initialDelaySeconds: 45
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          name: ${LOKI_SERVICE_NAME}
+          ports:
+          - containerPort: 3100
+            name: http-metrics
+            protocol: TCP
+          readinessProbe:
+            failureThreshold: 3
+            httpGet:
+              path: /ready
+              port: http-metrics
+              scheme: HTTP
+            initialDelaySeconds: 45
+            periodSeconds: 10
+            successThreshold: 1
+            timeoutSeconds: 1
+          resources: {}
+          securityContext:
+            readOnlyRootFilesystem: true
+          terminationMessagePath: /dev/termination-log
+          terminationMessagePolicy: File
+          volumeMounts:
+          - mountPath: /etc/loki
+            name: config
+          - mountPath: /data
+            name: storage
+        dnsPolicy: ClusterFirst
+        restartPolicy: Always
+        schedulerName: default-scheduler
+        securityContext: {}
+        serviceAccount: default
+        serviceAccountName: default
+        terminationGracePeriodSeconds: 30
+        volumes:
+        - name: config
+          secret:
+            defaultMode: 420
+            secretName: ${LOKI_SECRETS}
+        - emptyDir: {}
+          name: storage
+    observedGeneration: 1
+    readyReplicas: 1
+    replicas: 1
+    updatedReplicas: 1
+
+- apiVersion: route.openshift.io/v1
+  kind: Route
+  metadata:
+    labels:
+      app: ${LOKI_SERVICE_NAME}
+    name: ${LOKI_SERVICE_NAME}
+  spec:
+    host: loki-s4g19x-saravankumarpa-openshift201-may2019-dev.pathfinder.gov.bc.ca
+    port:
+      targetPort: http-metrics
+    to:
+      kind: Service
+      name: ${LOKI_SERVICE_NAME}
+      weight: 100
+    wildcardPolicy: None
+- apiVersion: v1
+  data:
+    loki.yaml: YXV0aF9lbmFibGVkOiBmYWxzZQpjaHVua19zdG9yZV9jb25maWc6CiAgbWF4X2xvb2tfYmFja19wZXJpb2Q6IDAKaW5nZXN0ZXI6CiAgY2h1bmtfYmxvY2tfc2l6ZTogMjYyMTQ0CiAgY2h1bmtfaWRsZV9wZXJpb2Q6IDE1bQogIGxpZmVjeWNsZXI6CiAgICByaW5nOgogICAgICBrdnN0b3JlOgogICAgICAgIHN0b3JlOiBpbm1lbW9yeQogICAgICByZXBsaWNhdGlvbl9mYWN0b3I6IDEKbGltaXRzX2NvbmZpZzoKICBlbmZvcmNlX21ldHJpY19uYW1lOiBmYWxzZQpzY2hlbWFfY29uZmlnOgogIGNvbmZpZ3M6CiAgLSBmcm9tOiAiMjAxOC0wNC0xNSIKICAgIGluZGV4OgogICAgICBwZXJpb2Q6IDE2OGgKICAgICAgcHJlZml4OiBpbmRleF8KICAgIG9iamVjdF9zdG9yZTogZmlsZXN5c3RlbQogICAgc2NoZW1hOiB2OQogICAgc3RvcmU6IGJvbHRkYgpzZXJ2ZXI6CiAgaHR0cF9saXN0ZW5fcG9ydDogMzEwMApzdG9yYWdlX2NvbmZpZzoKICBib2x0ZGI6CiAgICBkaXJlY3Rvcnk6IC9kYXRhL2xva2kvaW5kZXgKICBmaWxlc3lzdGVtOgogICAgZGlyZWN0b3J5OiAvZGF0YS9sb2tpL2NodW5rcwp0YWJsZV9tYW5hZ2VyOgogIHJldGVudGlvbl9kZWxldGVzX2VuYWJsZWQ6IGZhbHNlCiAgcmV0ZW50aW9uX3BlcmlvZDogMAo=
+  kind: Secret
+  metadata:
+    labels:
+      name: ${LOKI_SERVICE_NAME}
+      app: ${LOKI_SERVICE_NAME}
+      chart: loki-0.8.4
+      heritage: Tiller
+      release: ${LOKI_SERVICE_NAME}
+    name: ${LOKI_SECRETS}
+  type: Opaque
+parameters:
+- description: Maximum amount of memory the container can use.
+  displayName: Memory Limit
+  name: MEMORY_LIMIT
+  required: true
+  value: 512Mi
+- description: The namespace this templated is deployed into.
+  displayName: Namespace
+  name: NAMESPACE
+  value: openshift
+- description: The name of the OpenShift Service exposed for the database.
+  displayName: Loki Service Name
+  name: LOKI_SERVICE_NAME
+  required: true
+  value: loki
+- description: The name of the OpenShift Service exposed for the database.
+  displayName: Loki secrets
+  name: LOKI_SECRETS
+  required: true
+  value: saravankumarpa-loki
